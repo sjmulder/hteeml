@@ -14,9 +14,9 @@ Installation
 Should work on any Unix with kqueue support, e.g. BSD and macOS but not
 Linux.
 
-   make
-   sudo make install
-   sudo make uninstall
+    make
+    sudo make install
+    sudo make uninstall
 
 Author
 ------
