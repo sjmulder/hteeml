@@ -21,11 +21,15 @@ print_html(char *data, size_t len, FILE *f)
 	size_t i, buflen=0;
 
 	for (i=0; i < len; i++) {
-		if (buflen+4 >= sizeof(buf)) {
+		if (buflen+5 >= sizeof(buf)) {
 			fwrite(buf, 1, buflen, f);
 			buflen = 0;
 		}
 		switch (data[i]) {
+		case '&':
+			memcpy(&buf[buflen], "&amp;", 5);
+			buflen += 5;
+			break;
 		case '<':
 			memcpy(&buf[buflen], "&lt;", 4);
 			buflen += 4;
