@@ -6,7 +6,7 @@ Usage
 -----
 **hteeml** *program* *argument* [*...*]
 
-Runs the given program, captures it stdout and sterr, and combines them
+Runs the given program, captures its stdout and sterr, and combines them
 into an HTML document where stderr is marked up red.
 
 Installation
