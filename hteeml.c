@@ -112,6 +112,7 @@ main(int argc, char **argv)
 
 	fputs("<!DOCTYPE html>"
 	    "<meta charset=utf-8>"
+	    "<meta name=generator content=hteeml>"
 	    "<meta name=color-scheme content=\"light dark\">"
 	    "<title>", stdout);
 	print_html(argv[1], strlen(argv[1]), stdout);
