@@ -1,0 +1,18 @@
+.Dd November 14, 2020
+.Dt HTEEML 1
+.Os
+.Sh NAME
+.Nm hteeml
+.Nd capture a program's output as HTML
+.Sh SYNOPSIS
+.Nm
+.Ar program
+.Ar argument
+.Op Ar ...
+.Sh DESCRIPTION
+Runs the given program, captures it stdout and sterr,
+and combines them into an HTML document
+where stderr is marked up red.
+.Sh AUTHORS
+.An Sijmen J. Mulder
+.Aq Mt ik@sjmulder.nl
