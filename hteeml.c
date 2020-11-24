@@ -8,11 +8,10 @@
 #include <sysexits.h>
 #include <err.h>
 
-static int outpipe[2], errpipe[2];
+#define MIN(a,b) ((a)<(b)?(a):(b))
 
-static int closed_map;
-#define CLOSED_OUT	1
-#define CLOSED_ERR	2
+static int outpipe[2], errpipe[2];
+static int nclosed;
 
 static void
 print_html(char *data, size_t len, FILE *f)
@@ -53,15 +52,14 @@ handle(struct kevent *event)
 	static char buf[4096];
 	static int in_span=0;
 	int is_err;
-	ssize_t nread;
+	ssize_t nread, nleft, ntoread;
 
 	if (event->flags & EV_ERROR)
 		errc(1, event->data, NULL);
 	if (event->flags & EV_EOF) {
-		if ((int)event->ident == outpipe[0])
-			closed_map |= CLOSED_OUT;
-		else
-			closed_map |= CLOSED_ERR;
+		close((int)event->ident);
+		nclosed++;
+		return;
 	}
 
 	is_err = (int)event->ident == errpipe[0];
@@ -73,17 +71,22 @@ handle(struct kevent *event)
 		in_span = 0;
 	}
 
-	while ((nread = read(event->ident, buf, sizeof(buf))) > 0)
+	nleft = (ssize_t)event->data;
+	while (nleft) {
+		ntoread = MIN(nleft, (ssize_t)sizeof(buf));
+		nread = read(event->ident, buf, ntoread);
+		if (nread == -1)
+			err(1, "read(%lu)", event->ident);
 		print_html(buf, (size_t)nread, stdout);
-	if (nread == -1)
-		err(1, "read(%lu)", event->ident);
+		nleft -= nread;
+	}
 }
 
 int
 main(int argc, char **argv)
 {
 	int kq, n, i;
-	struct kevent events[2], changes[2];
+	struct kevent events[2];
 	char **arg;
 
 	if (argc < 2) {
@@ -94,7 +97,7 @@ main(int argc, char **argv)
 
 	if (pipe(outpipe) == -1 || pipe(errpipe) == -1)
 		err(1, "pipe");
-	
+
 	switch (fork()) {
 	case -1:
 		err(1, "fork");
@@ -124,14 +127,16 @@ main(int argc, char **argv)
 	    "<style>.e{color:red}</style>"
 	    "<pre>");
 
+	EV_SET(&events[0], outpipe[0], EVFILT_READ, EV_ADD, 0, 0, 0);
+	EV_SET(&events[1], errpipe[0], EVFILT_READ, EV_ADD, 0, 0, 0);
+
 	if ((kq = kqueue()) == -1)
 		err(1, "kqueue");
-	
-	EV_SET(&changes[0], outpipe[0], EVFILT_READ, EV_ADD, 0, 0, 0);
-	EV_SET(&changes[1], errpipe[0], EVFILT_READ, EV_ADD, 0, 0, 0);
-	
-	while (closed_map != (CLOSED_OUT | CLOSED_ERR)) {
-		if ((n = kevent(kq, changes, 2, events, 2, NULL)) == -1)
+	if (kevent(kq, events, 2, NULL, 0, NULL) == -1)
+		err(1, "kevent setup");
+
+	while (nclosed < 2) {
+		if ((n = kevent(kq, NULL, 0, events, 2, NULL)) == -1)
 			err(1, "kevent");
 		for (i=0; i<n; i++)
 			handle(&events[i]);
